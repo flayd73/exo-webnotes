@@ -28,7 +28,6 @@ install_requires = [
   "tqdm==4.66.4",
   "transformers==4.46.3",
   "uuid==1.30",
-  "uvloop==0.21.0",
   "tinygrad @ git+https://github.com/tinygrad/tinygrad.git@ec120ce6b9ce8e4ff4b5692566a683ef240e8bc8",
 ]
 
@@ -41,6 +40,7 @@ extras_require = {
   "windows": ["pywin32==308",],
   "nvidia-gpu": ["nvidia-ml-py==12.560.30",],
   "amd-gpu": ["pyrsmi==0.2.0"],
+  "unix": ["uvloop==0.21.0"],
 }
 
 # Check if running on macOS with Apple Silicon
@@ -50,6 +50,9 @@ if sys.platform.startswith("darwin") and platform.machine() == "arm64":
 # Check if running Windows
 if sys.platform.startswith("win32"):
   install_requires.extend(extras_require["windows"])
+# Add uvloop for non-Windows platforms
+elif not sys.platform.startswith("win32"):
+  install_requires.extend(extras_require["unix"])
 
 
 def _add_gpu_requires():
