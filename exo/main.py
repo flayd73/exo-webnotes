@@ -5,6 +5,7 @@ import signal
 import json
 import platform
 import os
+import sys
 import time
 import traceback
 import uuid
@@ -28,10 +29,13 @@ from exo.inference.inference_engine import get_inference_engine
 from exo.inference.tokenizers import resolve_tokenizer
 from exo.models import build_base_shard, get_repo
 from exo.viz.topology_viz import TopologyViz
-import uvloop
 import concurrent.futures
-import resource
 import psutil
+
+# Conditionally import modules not available on Windows
+if not sys.platform.startswith("win"):
+    import uvloop
+    import resource
 
 # TODO: figure out why this is happening
 os.environ["GRPC_VERBOSITY"] = "error"
@@ -40,17 +44,21 @@ os.environ["TOKENIZERS_PARALLELISM"] = "true"
 
 # Configure uvloop for maximum performance
 def configure_uvloop():
-    uvloop.install()
     loop = asyncio.new_event_loop()
+    
+    # Only use uvloop on non-Windows platforms
+    if not sys.platform.startswith("win"):
+        uvloop.install()
+    
     asyncio.set_event_loop(loop)
 
     # Increase file descriptor limits on Unix systems
-    if not psutil.WINDOWS:
-      soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
-      try: resource.setrlimit(resource.RLIMIT_NOFILE, (hard, hard))
-      except ValueError:
-        try: resource.setrlimit(resource.RLIMIT_NOFILE, (8192, hard))
-        except ValueError: pass
+    if not sys.platform.startswith("win"):
+        soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+        try: resource.setrlimit(resource.RLIMIT_NOFILE, (hard, hard))
+        except ValueError:
+            try: resource.setrlimit(resource.RLIMIT_NOFILE, (8192, hard))
+            except ValueError: pass
 
     loop.set_default_executor(concurrent.futures.ThreadPoolExecutor(max_workers=min(32, (os.cpu_count() or 1) * 4)))
     return loop
